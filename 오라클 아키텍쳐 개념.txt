@@ -1,0 +1,42 @@
+1. REDO vs UNDO
+ -- REDO의 특징 
+   * 데이터의 변경 사항들을 모두 기록한다.
+   * 모든 데이터가 저장되어 있음으로 data recovery시 사용된다.
+
+ -- UNDO의 특징 
+   * 데이터의 변경이 가해지면 이전에 대한 정보를 저장해 필요시 이전 데이터를 가져온다.
+   * DML 오퍼레이션별 UNDO 레코드에 기록되는 내용
+     - Insert   : 추가된 레코드의 rowid
+     - Update : 변경되는 컬럼에 대한 before image 
+     - Delete  : 지워지는 로우의 모든 컬럼에 대한 before image
+     - undo_retention : 트랜잭션이 완료되었어도 지정한 시간 동안은 "가급적" Undo 데이터를 재사용하지 말라고 
+ 		    오라클에 힌트를 주는 것
+
+2. current read vs consistent read 
+ -- consistent read : UNDO에 저장된 변경전 데이터를 통하여 읽기 읽관성을 유지한다.
+ -- current read     : DML 조작을 통하여 최종으로 변경된 데이터를 기준으로 읽는다.
+   * 블록 SCN > 쿼리 SCN
+     - 블록 SCN이 더 큼으로 consistent read시 current 블록을 CR 블록으로 생성하여 문장의 일관성을 유지한다. 
+     - 블록 SCN은 하나가 아니라 여러개가 존재함으로 여러 CR 블록이 존재할 수 있다. 
+
+2. LGWR, DBWR
+ * REDO LOG BUFFER의 내용을 REDO LOG FILE에 기록함 
+   -- 데이터 변경사항이 기록되는 REDO의 데이터 처리방식의 이해 필요
+
+3. 클린 아웃
+ * 데이터 처리 방식의 이해
+ * Delayed Block Clean Out vs Fast Block Clean Out
+   -- 클린아웃 후 Lock Byte가 풀리는 시점은?
+   -- DUMP 참조시 확인할 내용 
+ * 클린 아웃 실패 
+   -- 최저 커밋 SCN이 쿼리 SCN보다 높을 떄 snap shot too old 발생
+ 
+4. snap shot too old 
+ * 언제 발생하는지 ? 다른 트랙잭션이 사용하는 UNDO 세그먼트를 현재 처리중인 
+		 다른 트랜잭션이 사용해야할 경우 
+   		 지나친 commit은 지양해야한다.
+ * 에러가 발생을 예방하는 방법?
+ 
+5. Nested Loop Join 
+ * 개념
+
