@@ -39,4 +39,4 @@
  
 5. Nested Loop Join 
  * 개념
-
+확인중
