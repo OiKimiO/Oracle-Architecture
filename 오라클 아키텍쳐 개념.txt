@@ -57,7 +57,10 @@
    (2-2) 데이터베이스 Call 최소화
    (2-3) I/O 효율화 및 버퍼캐시 최적화
 
-10. 라이브러리 캐시 최적화 
+10. 인덱스 ???
+    ** Table Full Scan vs Index Scan 
+
+11. 라이브러리 캐시 최적화 
     ** 라이브러리 캐시 최적화시 고려사항
       -- 바인드 변수 중요성, 바인드 변수 사용시 부작용
       -- 과도한 parse call이 발생해도, cursor를 session에 캐싱 혹은 애플리케이션에 캐싱 하여 parse call을 줄이기
@@ -108,4 +111,34 @@
           - 하지만 대부분의 상황에서는 바인드 변수를 사용하는 것이 좋음!
 
       ** 세션 커서 캐싱 .. 다시 봐야할듯 ㅋㅋㅋ
-      ** 어플리케이션 커서 캐싱 부터 다시 시작
+      ** 어플리케이션 커서 캐싱 
+       -- 세션커서를 이용해 Library Cache에 있는 공유 커서를 빠르게 찾아 오픈 할 수 있지만 이것보다 더 빠르게 
+           커서를 사용할 수 있는 방법이 있는데 이를 애플리케이션 커서 캐싱 이라고 한다. 
+       -- 어플리케이션 커서 캐싱의 효과는 Dynamic SQL, Cursor Variable을 사용할 때는 사라진다. 
+          (Static SQL의 경우 커서 캐시를 유지하고 있다.)
+       -- PL/SQL 내에서는 session_cached_cursors 파라미터의 갯수로 세션 커서 기능을 유지한다.
+       -- n-Tier 환경에서는 DB Connection을 사용하고나서 곧바로 Connection을 반환하므로 
+          애플리케이션 커서 캐싱기법을 사용하기 쉽지 않다. 
+          하지만 PL/SQL를 잘 활용하면 라이브러리 캐시의 효율을 높일 수 있다. 
+
+      ** Static vs Dynamic SQL 
+       -- Static SQL(Embedded SQL) : 쿼리문을 String형 변수에 담지 않고 코드 사이에 직접 기술한 SQL문을 말한다. 
+       -- Dynamic SQL : 쿼리문을 String형 변수에 담아서 기술하는 SQL문을 의미한다. 
+       -- 효율을 고려한 코딩 방식 
+         * 원칙상 Static SQL을 사용한다.
+         * Dynamic SQL 사용시 
+          - Static SQL을 preCompile하지 못하는 스칼라 서브쿼리, 분석함수, ANSI를 구문에서 사용할 경우 
+          - 상황 조건에 따라 생성될 수 있는 SQL 최대 개수가 많아서 Static SQL로 일일이 나눠서 작성해야 할 경우
+          - 최대한 bind변수를 사용한다. 
+            (하지만 하드파싱에 의한 Library Cache의 부하가 적을 때는 예외적으로 bind 변수를 사용하지 않아도 된다.)
+         * 선택적 검색 조건에 사용할 수 있는 기법 성능 비교
+          - OR 조건 사용  
+             ※ Table Full Scan을 처리함으로 인덱스 활용이 필요할 때는 이 방식을 사용해서는 안됨
+          - Like 연산자를 사용하는 경우
+	※ 조건값이 입력되지 않았을 경우 Table Full Scan이 유리할 수 있지만, 
+                인덱스를 사용해 성능이 나빠질 수도 있다. 또한 컬럼이 not null인 경우에만 사용하는 것이 좋다
+          - NVL 함수를 사용하는 경우 
+          - DECODE 함수를 사용하는 경우 
+	※ 조건값의 여부에 따라 Table Full Scan, Index Scan을 한다. 단, 컬럼의 경우 not null이어야 한다. 
+          - UNION ALL을 사용하는 경우
+	※ null값을 허용하고, 액세스 조건으로 의미있는 컬럼일 경우 사용
